@@ -1,0 +1,44 @@
+spring:
+  application:
+    name: sequence-forge
+
+  datasource:
+    url: jdbc:postgresql://localhost:5432/sequenceforge
+    username: sequenceforge
+    password: sequenceforge
+    hikari:
+      maximum-pool-size: 20
+      minimum-idle: 5
+      connection-timeout: 30000
+
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    show-sql: false
+    open-in-view: false
+
+  flyway:
+    enabled: true
+    locations: classpath:db/migration
+
+  data:
+    redis:
+      host: localhost
+      port: 6379
+      lettuce:
+        pool:
+          max-active: 50
+          max-idle: 20
+          min-idle: 5
+
+  threads:
+    virtual:
+      enabled: true
+
+server:
+  port: 8080
+
+logging:
+  level:
+    io.sequenceforge: DEBUG
+    org.springframework.data.redis: INFO
