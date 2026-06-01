@@ -48,6 +48,15 @@ spring:
     virtual:
       enabled: true
 
+  # Redis Sentinel (production HA) — uncomment and set SENTINEL_NODES env var to enable.
+  # When enabled, overrides spring.data.redis.host/port above.
+  # data:
+  #   redis:
+  #     sentinel:
+  #       master: sequenceforge-master
+  #       nodes: "${SENTINEL_NODES:sentinel1:26379,sentinel2:26379,sentinel3:26379}"
+  #       password: "${REDIS_PASSWORD:}"
+
 server:
   port: 8080
 
@@ -59,6 +68,29 @@ app:
   auth:
     # Set to your frontend URL in production (e.g. https://app.sequenceforge.io)
     frontend-redirect-url: "${FRONTEND_URL:}"
+
+resilience4j:
+  circuitbreaker:
+    instances:
+      redis-counter:
+        registerHealthIndicator: true
+        slidingWindowSize: 10
+        minimumNumberOfCalls: 5
+        permittedNumberOfCallsInHalfOpenState: 3
+        waitDurationInOpenState: 30s
+        failureRateThreshold: 50
+        slowCallRateThreshold: 80
+        slowCallDurationThreshold: 2s
+        eventConsumerBufferSize: 20
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,circuitbreakers,metrics
+  endpoint:
+    health:
+      show-details: when_authorized
 
 logging:
   level:

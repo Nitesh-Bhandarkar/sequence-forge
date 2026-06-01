@@ -2,10 +2,10 @@ package io.sequenceforge.sequence;
 
 import io.sequenceforge.audit.AuditService;
 import io.sequenceforge.common.TenantContext;
+import io.sequenceforge.counter.CounterService;
 import io.sequenceforge.placeholder.DatePlaceholderResolver;
 import io.sequenceforge.placeholder.ResolverRegistry;
 import io.sequenceforge.placeholder.StaticPlaceholderResolver;
-import io.sequenceforge.redis.LuaScriptRunner;
 import io.sequenceforge.sequence.dto.GenerateSequenceRequest;
 import io.sequenceforge.sequence.dto.GenerateSequenceResponse;
 import io.sequenceforge.template.*;
@@ -29,7 +29,7 @@ import static org.mockito.Mockito.*;
 class SequenceGeneratorServiceTest {
 
     @Mock private TemplateService templateService;
-    @Mock private LuaScriptRunner luaScriptRunner;
+    @Mock private CounterService counterService;
     @Mock private AuditService auditService;
 
     private SequenceGeneratorService service;
@@ -43,7 +43,7 @@ class SequenceGeneratorServiceTest {
         ResolverRegistry registry = new ResolverRegistry(
                 List.of(new StaticPlaceholderResolver(), new DatePlaceholderResolver())
         );
-        service = new SequenceGeneratorService(templateService, registry, luaScriptRunner, auditService);
+        service = new SequenceGeneratorService(templateService, registry, counterService, auditService);
     }
 
     @AfterEach
@@ -55,7 +55,7 @@ class SequenceGeneratorServiceTest {
     void generate_invoiceSequence_returnsFormattedString() {
         Template template = invoiceTemplate();
         when(templateService.loadForGeneration(TEMPLATE_ID)).thenReturn(template);
-        when(luaScriptRunner.incrementAndGet(anyString(), eq(9999L))).thenReturn(42L);
+        when(counterService.increment(anyString(), any(), any(), eq(9999L))).thenReturn(42L);
 
         GenerateSequenceResponse response = service.generate(
                 new GenerateSequenceRequest(TEMPLATE_ID, Map.of("SS", "MH", "CC", "IN", "FY", "2627"))
@@ -72,7 +72,7 @@ class SequenceGeneratorServiceTest {
     void generate_counterIsZeroPadded() {
         Template template = invoiceTemplate();
         when(templateService.loadForGeneration(TEMPLATE_ID)).thenReturn(template);
-        when(luaScriptRunner.incrementAndGet(anyString(), eq(9999L))).thenReturn(1L);
+        when(counterService.increment(anyString(), any(), any(), eq(9999L))).thenReturn(1L);
 
         GenerateSequenceResponse response = service.generate(
                 new GenerateSequenceRequest(TEMPLATE_ID, Map.of("SS", "KA", "CC", "IN", "FY", "2627"))
@@ -85,13 +85,12 @@ class SequenceGeneratorServiceTest {
     void generate_differentParamsProduceDifferentRedisKeys() {
         Template template = invoiceTemplate();
         when(templateService.loadForGeneration(any())).thenReturn(template);
-        when(luaScriptRunner.incrementAndGet(anyString(), anyLong())).thenReturn(1L);
+        when(counterService.increment(anyString(), any(), any(), anyLong())).thenReturn(1L);
 
         service.generate(new GenerateSequenceRequest(TEMPLATE_ID, Map.of("SS", "MH", "CC", "IN", "FY", "2627")));
         service.generate(new GenerateSequenceRequest(TEMPLATE_ID, Map.of("SS", "KA", "CC", "IN", "FY", "2627")));
 
-        // Two different Redis keys should have been called
-        verify(luaScriptRunner, times(2)).incrementAndGet(anyString(), anyLong());
+        verify(counterService, times(2)).increment(anyString(), any(), any(), anyLong());
     }
 
     private Template invoiceTemplate() {

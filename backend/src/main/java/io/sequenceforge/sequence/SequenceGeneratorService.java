@@ -2,8 +2,8 @@ package io.sequenceforge.sequence;
 
 import io.sequenceforge.audit.AuditService;
 import io.sequenceforge.common.TenantContext;
+import io.sequenceforge.counter.CounterService;
 import io.sequenceforge.placeholder.ResolverRegistry;
-import io.sequenceforge.redis.LuaScriptRunner;
 import io.sequenceforge.sequence.dto.CounterStatusResponse;
 import io.sequenceforge.sequence.dto.GenerateSequenceRequest;
 import io.sequenceforge.sequence.dto.GenerateSequenceResponse;
@@ -25,16 +25,16 @@ public class SequenceGeneratorService {
 
     private final TemplateService templateService;
     private final ResolverRegistry resolverRegistry;
-    private final LuaScriptRunner luaScriptRunner;
+    private final CounterService counterService;
     private final AuditService auditService;
 
     public SequenceGeneratorService(TemplateService templateService,
                                     ResolverRegistry resolverRegistry,
-                                    LuaScriptRunner luaScriptRunner,
+                                    CounterService counterService,
                                     AuditService auditService) {
         this.templateService = templateService;
         this.resolverRegistry = resolverRegistry;
-        this.luaScriptRunner = luaScriptRunner;
+        this.counterService = counterService;
         this.auditService = auditService;
     }
 
@@ -45,7 +45,8 @@ public class SequenceGeneratorService {
         Map<String, String> resolvedValues = resolveNonCounterPlaceholders(template, request.params());
         String redisKey = buildRedisKey(tenantId, template, resolvedValues);
 
-        long counterValue = luaScriptRunner.incrementAndGet(redisKey, template.getMaxCounterValue());
+        long counterValue = counterService.increment(
+                redisKey, template.getId(), tenantId, template.getMaxCounterValue());
 
         String formattedCounter = String.format("%0" + template.getCounterPadding() + "d", counterValue);
         String sequence = buildSequence(template.getFormatString(), resolvedValues, formattedCounter);
@@ -60,13 +61,12 @@ public class SequenceGeneratorService {
         Template template = templateService.loadForGeneration(templateId);
         Map<String, String> resolvedValues = resolveNonCounterPlaceholders(template, params);
         String redisKey = buildRedisKey(tenantId, template, resolvedValues);
-        long current = luaScriptRunner.getCurrentValue(redisKey);
+        long current = counterService.peek(redisKey);
         return new CounterStatusResponse(redisKey, current, template.getMaxCounterValue(),
                 template.getMaxCounterValue() - current);
     }
 
     private Map<String, String> resolveNonCounterPlaceholders(Template template, Map<String, String> params) {
-        // LinkedHashMap preserves sort_order insertion order for deterministic Redis key building
         Map<String, String> resolved = new LinkedHashMap<>();
         for (PlaceholderConfig config : template.getPlaceholderConfigs()) {
             if (config.getPlaceholderType() == PlaceholderType.COUNTER) {
@@ -92,7 +92,6 @@ public class SequenceGeneratorService {
         StringBuilder sb = new StringBuilder();
         while (matcher.find()) {
             String name = matcher.group(1);
-            // Counter placeholder is absent from resolvedValues — falls back to the formatted counter
             String value = resolvedValues.getOrDefault(name, formattedCounter);
             matcher.appendReplacement(sb, Matcher.quoteReplacement(value));
         }

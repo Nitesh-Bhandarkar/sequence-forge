@@ -1,0 +1,55 @@
+version: '3.9'
+
+# Redis Sentinel setup for local HA testing.
+# Usage: docker compose -f docker-compose.yml -f docker-compose.sentinel.yml up -d
+#
+# Then set in application.yml:
+#   spring.data.redis.sentinel.master: sequenceforge-master
+#   spring.data.redis.sentinel.nodes: localhost:26379,localhost:26380,localhost:26381
+
+services:
+  redis:
+    # Override standalone redis — now the master in the Sentinel topology
+    container_name: sf-redis-master
+    command: redis-server --appendonly yes --appendfsync everysec
+
+  redis-replica:
+    image: redis:7-alpine
+    container_name: sf-redis-replica
+    command: redis-server --replicaof redis 6379 --appendonly yes
+    depends_on:
+      redis:
+        condition: service_healthy
+
+  redis-sentinel-1:
+    image: redis:7-alpine
+    container_name: sf-sentinel-1
+    ports:
+      - "26379:26379"
+    command: >
+      sh -c "printf 'port 26379\nsentinel monitor sequenceforge-master redis 6379 2\nsentinel down-after-milliseconds sequenceforge-master 5000\nsentinel failover-timeout sequenceforge-master 10000\nsentinel parallel-syncs sequenceforge-master 1\n' > /tmp/sentinel.conf && redis-sentinel /tmp/sentinel.conf"
+    depends_on:
+      - redis
+      - redis-replica
+
+  redis-sentinel-2:
+    image: redis:7-alpine
+    container_name: sf-sentinel-2
+    ports:
+      - "26380:26380"
+    command: >
+      sh -c "printf 'port 26380\nsentinel monitor sequenceforge-master redis 6379 2\nsentinel down-after-milliseconds sequenceforge-master 5000\nsentinel failover-timeout sequenceforge-master 10000\nsentinel parallel-syncs sequenceforge-master 1\n' > /tmp/sentinel.conf && redis-sentinel /tmp/sentinel.conf"
+    depends_on:
+      - redis
+      - redis-replica
+
+  redis-sentinel-3:
+    image: redis:7-alpine
+    container_name: sf-sentinel-3
+    ports:
+      - "26381:26381"
+    command: >
+      sh -c "printf 'port 26381\nsentinel monitor sequenceforge-master redis 6379 2\nsentinel down-after-milliseconds sequenceforge-master 5000\nsentinel failover-timeout sequenceforge-master 10000\nsentinel parallel-syncs sequenceforge-master 1\n' > /tmp/sentinel.conf && redis-sentinel /tmp/sentinel.conf"
+    depends_on:
+      - redis
+      - redis-replica

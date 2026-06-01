@@ -8,6 +8,8 @@ import io.sequenceforge.template.dto.CreateTemplateRequest;
 import io.sequenceforge.template.dto.PlaceholderConfigRequest;
 import io.sequenceforge.template.dto.TemplateResponse;
 import io.sequenceforge.template.dto.UpdateTemplateRequest;
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -55,6 +57,7 @@ public class TemplateService {
         return TemplateResponse.from(templateRepository.save(template));
     }
 
+    @CacheEvict(value = "templates", key = "#templateId")
     @Transactional
     public TemplateResponse updateTemplate(UUID templateId, UpdateTemplateRequest request) {
         UUID tenantId = TenantContext.get();
@@ -81,6 +84,7 @@ public class TemplateService {
                 .toList();
     }
 
+    @CacheEvict(value = "templates", key = "#templateId")
     @Transactional
     public void deleteTemplate(UUID templateId) {
         UUID tenantId = TenantContext.get();
@@ -90,6 +94,7 @@ public class TemplateService {
         templateRepository.save(template);
     }
 
+    @Cacheable(value = "templates", key = "#templateId")
     public Template loadForGeneration(UUID templateId) {
         return templateRepository.findById(templateId)
                 .filter(Template::getIsActive)

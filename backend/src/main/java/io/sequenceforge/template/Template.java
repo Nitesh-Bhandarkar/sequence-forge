@@ -1,6 +1,8 @@
 package io.sequenceforge.template;
 
 import jakarta.persistence.*;
+import java.io.Serial;
+import java.io.Serializable;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
@@ -8,7 +10,10 @@ import java.util.UUID;
 
 @Entity
 @Table(name = "templates")
-public class Template {
+public class Template implements Serializable {
+
+    @Serial
+    private static final long serialVersionUID = 1L;
 
     @Id
     @GeneratedValue(strategy = GenerationType.UUID)
