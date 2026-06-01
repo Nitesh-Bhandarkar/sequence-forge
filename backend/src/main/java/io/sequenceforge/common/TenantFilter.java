@@ -10,15 +10,30 @@ import org.springframework.web.filter.OncePerRequestFilter;
 import java.io.IOException;
 import java.util.UUID;
 
+// Dev-convenience filter: reads X-Tenant-ID header when no auth filter has set TenantContext.
+// In production flows (Phase 2+), JwtAuthFilter or ApiKeyAuthFilter set TenantContext first,
+// so this filter becomes a no-op on those paths.
 @Component
 public class TenantFilter extends OncePerRequestFilter {
 
     static final String TENANT_HEADER = "X-Tenant-ID";
 
     @Override
+    protected boolean shouldNotFilter(HttpServletRequest request) {
+        String path = request.getRequestURI();
+        return path.startsWith("/oauth2/") || path.startsWith("/login/") || path.equals("/error");
+    }
+
+    @Override
     protected void doFilterInternal(HttpServletRequest request,
                                     HttpServletResponse response,
                                     FilterChain filterChain) throws ServletException, IOException {
+        // Skip if an auth filter already set the tenant (JWT or API key path)
+        if (TenantContext.get() != null) {
+            filterChain.doFilter(request, response);
+            return;
+        }
+
         String tenantHeader = request.getHeader(TENANT_HEADER);
         if (tenantHeader == null || tenantHeader.isBlank()) {
             response.setStatus(HttpServletResponse.SC_BAD_REQUEST);

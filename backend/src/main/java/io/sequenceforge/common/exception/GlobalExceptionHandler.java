@@ -41,6 +41,11 @@ public class GlobalExceptionHandler {
         return ResponseEntity.badRequest().body(ApiResponse.error(errors));
     }
 
+    @ExceptionHandler(ApiKeyNotFoundException.class)
+    public ResponseEntity<ApiResponse<Void>> handleApiKeyNotFound(ApiKeyNotFoundException ex) {
+        return ResponseEntity.status(HttpStatus.NOT_FOUND).body(ApiResponse.error(ex.getMessage()));
+    }
+
     @ExceptionHandler(Exception.class)
     public ResponseEntity<ApiResponse<Void>> handleUnexpected(Exception ex) {
         return ResponseEntity.internalServerError()

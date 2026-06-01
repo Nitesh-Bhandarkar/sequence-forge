@@ -31,6 +31,19 @@ spring:
           max-idle: 20
           min-idle: 5
 
+  security:
+    oauth2:
+      client:
+        registration:
+          google:
+            client-id: "${GOOGLE_CLIENT_ID:change-me}"
+            client-secret: "${GOOGLE_CLIENT_SECRET:change-me}"
+            scope: openid,email,profile
+          github:
+            client-id: "${GITHUB_CLIENT_ID:change-me}"
+            client-secret: "${GITHUB_CLIENT_SECRET:change-me}"
+            scope: read:user,user:email
+
   threads:
     virtual:
       enabled: true
@@ -38,7 +51,17 @@ spring:
 server:
   port: 8080
 
+app:
+  jwt:
+    # WARNING: Override APP_JWT_SECRET in production. Generate with: openssl rand -base64 32
+    secret: "${APP_JWT_SECRET:c2VxdWVuY2UtZm9yZ2UtZGV2LXNlY3JldC1rZXktbG9jYWwtb25seQ==}"
+    expiration-ms: 86400000  # 24 hours
+  auth:
+    # Set to your frontend URL in production (e.g. https://app.sequenceforge.io)
+    frontend-redirect-url: "${FRONTEND_URL:}"
+
 logging:
   level:
     io.sequenceforge: DEBUG
+    org.springframework.security: INFO
     org.springframework.data.redis: INFO
