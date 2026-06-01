@@ -3,6 +3,7 @@ package io.sequenceforge.template;
 import io.sequenceforge.common.ApiResponse;
 import io.sequenceforge.template.dto.CreateTemplateRequest;
 import io.sequenceforge.template.dto.TemplateResponse;
+import io.sequenceforge.template.dto.UpdateTemplateRequest;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.*;
@@ -29,6 +30,12 @@ public class TemplateController {
     @GetMapping
     public ApiResponse<List<TemplateResponse>> listTemplates() {
         return ApiResponse.ok(templateService.listTemplates());
+    }
+
+    @PutMapping("/{id}")
+    public ApiResponse<TemplateResponse> updateTemplate(@PathVariable UUID id,
+                                                         @RequestBody UpdateTemplateRequest request) {
+        return ApiResponse.ok(templateService.updateTemplate(id, request));
     }
 
     @GetMapping("/{id}")

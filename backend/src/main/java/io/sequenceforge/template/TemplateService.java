@@ -3,9 +3,11 @@ package io.sequenceforge.template;
 import io.sequenceforge.common.TenantContext;
 import io.sequenceforge.common.exception.InvalidTemplateException;
 import io.sequenceforge.common.exception.TemplateNotFoundException;
+import io.sequenceforge.placeholder.DateFormat;
 import io.sequenceforge.template.dto.CreateTemplateRequest;
 import io.sequenceforge.template.dto.PlaceholderConfigRequest;
 import io.sequenceforge.template.dto.TemplateResponse;
+import io.sequenceforge.template.dto.UpdateTemplateRequest;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -53,6 +55,16 @@ public class TemplateService {
         return TemplateResponse.from(templateRepository.save(template));
     }
 
+    @Transactional
+    public TemplateResponse updateTemplate(UUID templateId, UpdateTemplateRequest request) {
+        UUID tenantId = TenantContext.get();
+        Template template = templateRepository.findByIdAndTenantIdAndIsActiveTrue(templateId, tenantId)
+                .orElseThrow(() -> new TemplateNotFoundException(templateId));
+        if (request.name() != null) template.setName(request.name());
+        if (request.description() != null) template.setDescription(request.description());
+        return TemplateResponse.from(templateRepository.save(template));
+    }
+
     @Transactional(readOnly = true)
     public TemplateResponse getTemplate(UUID templateId) {
         UUID tenantId = TenantContext.get();
@@ -94,10 +106,8 @@ public class TemplateService {
             if (pcr.placeholderType() == PlaceholderType.COUNTER) {
                 counterCount++;
             }
-            if (pcr.placeholderType() == PlaceholderType.DATE
-                    && (pcr.dateFormat() == null || pcr.dateFormat().isBlank())) {
-                throw new InvalidTemplateException(
-                        "DATE placeholder {" + pcr.placeholderName() + "} must have a dateFormat");
+            if (pcr.placeholderType() == PlaceholderType.DATE) {
+                validateDateFormat(pcr.placeholderName(), pcr.dateFormat());
             }
         }
 
@@ -118,6 +128,21 @@ public class TemplateService {
                 throw new InvalidTemplateException(
                         "Placeholder config {" + configName + "} not found in format string");
             }
+        }
+    }
+
+    private void validateDateFormat(String placeholderName, String dateFormat) {
+        if (dateFormat == null || dateFormat.isBlank()) {
+            throw new InvalidTemplateException(
+                    "DATE placeholder {" + placeholderName + "} must have a dateFormat. " +
+                    "Valid values: " + Arrays.toString(DateFormat.values()));
+        }
+        try {
+            DateFormat.valueOf(dateFormat);
+        } catch (IllegalArgumentException e) {
+            throw new InvalidTemplateException(
+                    "Unknown dateFormat '" + dateFormat + "' for placeholder {" + placeholderName + "}. " +
+                    "Valid values: " + Arrays.toString(DateFormat.values()));
         }
     }
 

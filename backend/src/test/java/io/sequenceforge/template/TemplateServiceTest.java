@@ -117,6 +117,21 @@ class TemplateServiceTest {
     }
 
     @Test
+    void createTemplate_failsWhenDateFormatIsUnknown() {
+        CreateTemplateRequest request = new CreateTemplateRequest(
+                "Bad Template", null, "{FY}/{SEQ}",
+                9999L,
+                List.of(
+                        new PlaceholderConfigRequest("FY", PlaceholderType.DATE, "INVALID_FORMAT", null, true),
+                        new PlaceholderConfigRequest("SEQ", PlaceholderType.COUNTER, null, null, true)
+                )
+        );
+        assertThatThrownBy(() -> templateService.createTemplate(request))
+                .isInstanceOf(InvalidTemplateException.class)
+                .hasMessageContaining("INVALID_FORMAT");
+    }
+
+    @Test
     void extractPlaceholderNames_parsesCorrectly() {
         List<String> names = TemplateService.extractPlaceholderNames("{SS}/{CC}/{FY}/{SEQ}");
         assertThat(names).containsExactly("SS", "CC", "FY", "SEQ");

@@ -4,6 +4,7 @@ import io.sequenceforge.audit.AuditService;
 import io.sequenceforge.common.TenantContext;
 import io.sequenceforge.placeholder.ResolverRegistry;
 import io.sequenceforge.redis.LuaScriptRunner;
+import io.sequenceforge.sequence.dto.CounterStatusResponse;
 import io.sequenceforge.sequence.dto.GenerateSequenceRequest;
 import io.sequenceforge.sequence.dto.GenerateSequenceResponse;
 import io.sequenceforge.template.PlaceholderConfig;
@@ -52,6 +53,16 @@ public class SequenceGeneratorService {
         auditService.record(tenantId, template.getId(), redisKey, counterValue, sequence, request.params());
 
         return new GenerateSequenceResponse(sequence, template.getId(), redisKey, counterValue, LocalDateTime.now());
+    }
+
+    public CounterStatusResponse peekCounter(UUID templateId, Map<String, String> params) {
+        UUID tenantId = TenantContext.get();
+        Template template = templateService.loadForGeneration(templateId);
+        Map<String, String> resolvedValues = resolveNonCounterPlaceholders(template, params);
+        String redisKey = buildRedisKey(tenantId, template, resolvedValues);
+        long current = luaScriptRunner.getCurrentValue(redisKey);
+        return new CounterStatusResponse(redisKey, current, template.getMaxCounterValue(),
+                template.getMaxCounterValue() - current);
     }
 
     private Map<String, String> resolveNonCounterPlaceholders(Template template, Map<String, String> params) {

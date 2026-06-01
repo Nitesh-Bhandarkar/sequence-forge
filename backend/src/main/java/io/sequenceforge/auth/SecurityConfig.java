@@ -27,13 +27,13 @@ public class SecurityConfig {
         this.oAuth2SuccessHandler = oAuth2SuccessHandler;
     }
 
-    // Chain 1: sequence generation — API key auth
+    // Chain 1: sequence generation + counter peek — API key auth
     @Bean
     @Order(1)
     public SecurityFilterChain apiKeyFilterChain(HttpSecurity http) throws Exception {
         ApiKeyAuthFilter apiKeyAuthFilter = new ApiKeyAuthFilter(apiKeyService);
         return http
-                .securityMatcher("/api/v1/sequences/**")
+                .securityMatcher("/api/v1/sequences/generate", "/api/v1/sequences/counter")
                 .csrf(AbstractHttpConfigurer::disable)
                 .sessionManagement(s -> s.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(auth -> auth.anyRequest().permitAll())

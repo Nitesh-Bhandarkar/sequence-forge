@@ -19,6 +19,11 @@ public class LuaScriptRunner {
         this.counterIncrementScript = counterIncrementScript;
     }
 
+    public long getCurrentValue(String redisKey) {
+        String value = redisTemplate.opsForValue().get(redisKey);
+        return value != null ? Long.parseLong(value) : 0L;
+    }
+
     public long incrementAndGet(String redisKey, long maxCounterValue) {
         try {
             Long result = redisTemplate.execute(
