@@ -37,8 +37,14 @@ public class JwtAuthFilter extends OncePerRequestFilter {
         String token = authHeader.substring(7);
         try {
             Claims claims = jwtService.parseToken(token);
-            UUID tenantId = UUID.fromString(claims.get("tenantId", String.class));
-            UUID userId = UUID.fromString(claims.getSubject());
+            String tenantIdStr = claims.get("tenantId", String.class);
+            String subject = claims.getSubject();
+            if (tenantIdStr == null || subject == null) {
+                sendError(response, "Invalid or expired token");
+                return;
+            }
+            UUID tenantId = UUID.fromString(tenantIdStr);
+            UUID userId = UUID.fromString(subject);
 
             TenantContext.set(tenantId);
             SecurityContextHolder.getContext().setAuthentication(

@@ -22,8 +22,12 @@ public class DbCounterService {
 
     @Transactional
     public long incrementAndGet(String resolvedKey, UUID templateId, UUID tenantId, long maxValue) {
+        // Upsert row first so the subsequent lock-read always finds it.
+        // ON CONFLICT DO NOTHING makes concurrent first-inserts safe.
+        dbCounterRepository.insertIfAbsent(resolvedKey, tenantId, templateId, maxValue);
+
         DbCounter counter = dbCounterRepository.findByResolvedKeyWithLock(resolvedKey)
-                .orElseGet(() -> create(resolvedKey, templateId, tenantId, maxValue));
+                .orElseThrow(() -> new IllegalStateException("Counter row missing after upsert: " + resolvedKey));
 
         if (counter.getCounterValue() >= maxValue) {
             throw new CounterOverflowException(resolvedKey, maxValue);
@@ -42,16 +46,5 @@ public class DbCounterService {
         return dbCounterRepository.findById(resolvedKey)
                 .map(DbCounter::getCounterValue)
                 .orElse(0L);
-    }
-
-    private DbCounter create(String resolvedKey, UUID templateId, UUID tenantId, long maxValue) {
-        DbCounter counter = new DbCounter();
-        counter.setResolvedKey(resolvedKey);
-        counter.setTemplateId(templateId);
-        counter.setTenantId(tenantId);
-        counter.setCounterValue(0L);
-        counter.setMaxValue(maxValue);
-        counter.setUpdatedAt(LocalDateTime.now());
-        return dbCounterRepository.save(counter);
     }
 }

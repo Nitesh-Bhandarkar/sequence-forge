@@ -1,0 +1,15 @@
+apiVersion: v2
+name: sequence-forge
+description: Multi-tenant sequence number generator service
+type: application
+version: 1.0.0
+appVersion: "1.0.0"
+keywords:
+  - sequence
+  - generator
+  - multi-tenant
+home: https://github.com/Nitesh-Bhandarkar/sequence-forge
+sources:
+  - https://github.com/Nitesh-Bhandarkar/sequence-forge
+maintainers:
+  - name: Sequence Forge Contributors

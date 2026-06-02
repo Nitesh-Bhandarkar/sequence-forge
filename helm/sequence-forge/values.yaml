@@ -1,0 +1,81 @@
+replicaCount: 2
+
+image:
+  repository: ghcr.io/nitesh-bhandarkar/sequence-forge
+  pullPolicy: IfNotPresent
+  tag: ""  # Defaults to Chart.appVersion
+
+service:
+  type: ClusterIP
+  port: 8080
+
+ingress:
+  enabled: true
+  className: nginx
+  annotations: {}
+  hosts:
+    - host: sequence-forge.example.com
+      paths:
+        - path: /
+          pathType: Prefix
+  tls: []
+
+resources:
+  requests:
+    cpu: 250m
+    memory: 512Mi
+  limits:
+    cpu: 1000m
+    memory: 1Gi
+
+autoscaling:
+  enabled: true
+  minReplicas: 2
+  maxReplicas: 10
+  targetCPUUtilizationPercentage: 70
+
+# PostgreSQL connection
+database:
+  url: jdbc:postgresql://postgres:5432/sequenceforge
+  username: sequenceforge
+  # password is read from secret: sequence-forge-secrets key: DB_PASSWORD
+
+# Redis connection
+redis:
+  host: redis-master
+  port: 6379
+  # Sentinel HA (optional)
+  sentinel:
+    enabled: false
+    master: sequenceforge-master
+    nodes: ""
+
+# Secret references — create the secret before deploying:
+#   kubectl create secret generic sequence-forge-secrets \
+#     --from-literal=DB_PASSWORD=... \
+#     --from-literal=APP_JWT_SECRET=... \
+#     --from-literal=ANTHROPIC_API_KEY=... \
+#     --from-literal=GOOGLE_CLIENT_ID=... \
+#     --from-literal=GOOGLE_CLIENT_SECRET=...
+existingSecret: sequence-forge-secrets
+
+app:
+  ai:
+    enabled: "true"
+  devLogin:
+    enabled: "false"
+  frontendUrl: "https://sequence-forge.example.com"
+
+livenessProbe:
+  httpGet:
+    path: /actuator/health/liveness
+    port: 8080
+  initialDelaySeconds: 30
+  periodSeconds: 10
+
+readinessProbe:
+  httpGet:
+    path: /actuator/health/readiness
+    port: 8080
+  initialDelaySeconds: 20
+  periodSeconds: 5

@@ -31,7 +31,9 @@ public class CacheConfig {
                 .disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS)
                 .activateDefaultTyping(
                         BasicPolymorphicTypeValidator.builder()
-                                .allowIfBaseType(Object.class)
+                                .allowIfSubType("io.sequenceforge")
+                                .allowIfSubType("java.util")
+                                .allowIfSubType("java.time")
                                 .build(),
                         ObjectMapper.DefaultTyping.NON_FINAL,
                         JsonTypeInfo.As.PROPERTY

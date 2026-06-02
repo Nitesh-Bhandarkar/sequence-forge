@@ -94,11 +94,13 @@ public class TemplateService {
         templateRepository.save(template);
     }
 
-    @Cacheable(value = "templates", key = "#templateId")
+    @Cacheable(value = "templates",
+               key = "T(io.sequenceforge.common.TenantContext).get().toString() + ':' + #templateId")
     @Transactional(readOnly = true)
     public Template loadForGeneration(UUID templateId) {
-        Template template = templateRepository.findById(templateId)
-                .filter(Template::getIsActive)
+        UUID tenantId = TenantContext.get();
+        // Tenant-scoped lookup prevents cross-tenant template access via cache or direct call.
+        Template template = templateRepository.findByIdAndTenantIdAndIsActiveTrue(templateId, tenantId)
                 .orElseThrow(() -> new TemplateNotFoundException(templateId));
         // Copy Hibernate PersistentBag → plain ArrayList so the cached entity
         // can be deserialized from Redis without an active Hibernate session.

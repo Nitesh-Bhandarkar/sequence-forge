@@ -1,0 +1,81 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "sequence-forge.fullname" . }}
+  labels:
+    {{- include "sequence-forge.labels" . | nindent 4 }}
+spec:
+  {{- if not .Values.autoscaling.enabled }}
+  replicas: {{ .Values.replicaCount }}
+  {{- end }}
+  selector:
+    matchLabels:
+      {{- include "sequence-forge.selectorLabels" . | nindent 6 }}
+  template:
+    metadata:
+      labels:
+        {{- include "sequence-forge.selectorLabels" . | nindent 8 }}
+    spec:
+      containers:
+        - name: {{ .Chart.Name }}
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          ports:
+            - name: http
+              containerPort: 8080
+              protocol: TCP
+          env:
+            - name: SPRING_DATASOURCE_URL
+              value: {{ .Values.database.url | quote }}
+            - name: SPRING_DATASOURCE_USERNAME
+              value: {{ .Values.database.username | quote }}
+            - name: SPRING_DATASOURCE_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.existingSecret }}
+                  key: DB_PASSWORD
+            - name: SPRING_DATA_REDIS_HOST
+              value: {{ .Values.redis.host | quote }}
+            - name: SPRING_DATA_REDIS_PORT
+              value: {{ .Values.redis.port | quote }}
+            {{- if .Values.redis.sentinel.enabled }}
+            - name: SPRING_DATA_REDIS_SENTINEL_MASTER
+              value: {{ .Values.redis.sentinel.master | quote }}
+            - name: SENTINEL_NODES
+              value: {{ .Values.redis.sentinel.nodes | quote }}
+            {{- end }}
+            - name: APP_JWT_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.existingSecret }}
+                  key: APP_JWT_SECRET
+            - name: ANTHROPIC_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.existingSecret }}
+                  key: ANTHROPIC_API_KEY
+                  optional: true
+            - name: GOOGLE_CLIENT_ID
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.existingSecret }}
+                  key: GOOGLE_CLIENT_ID
+                  optional: true
+            - name: GOOGLE_CLIENT_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.existingSecret }}
+                  key: GOOGLE_CLIENT_SECRET
+                  optional: true
+            - name: AI_ENABLED
+              value: {{ .Values.app.ai.enabled | quote }}
+            - name: FRONTEND_URL
+              value: {{ .Values.app.frontendUrl | quote }}
+            - name: APP_DEV_LOGIN_ENABLED
+              value: {{ .Values.app.devLogin.enabled | quote }}
+          livenessProbe:
+            {{- toYaml .Values.livenessProbe | nindent 12 }}
+          readinessProbe:
+            {{- toYaml .Values.readinessProbe | nindent 12 }}
+          resources:
+            {{- toYaml .Values.resources | nindent 12 }}

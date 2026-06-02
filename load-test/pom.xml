@@ -1,0 +1,48 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+    <groupId>io.sequenceforge</groupId>
+    <artifactId>sequence-forge-load-test</artifactId>
+    <version>1.0.0</version>
+
+    <properties>
+        <gatling.version>3.11.5</gatling.version>
+        <scala.version>2.13.14</scala.version>
+        <gatling-maven-plugin.version>4.9.6</gatling-maven-plugin.version>
+        <!-- Override with -Dbase.url=https://... -Dapi.key=sf_... -->
+        <base.url>http://localhost:8080</base.url>
+        <api.key>REPLACE_ME</api.key>
+        <template.id>REPLACE_ME</template.id>
+    </properties>
+
+    <dependencies>
+        <dependency>
+            <groupId>io.gatling.highcharts</groupId>
+            <artifactId>gatling-charts-highcharts</artifactId>
+            <version>${gatling.version}</version>
+            <scope>test</scope>
+        </dependency>
+    </dependencies>
+
+    <build>
+        <sourceDirectory>src/test/scala</sourceDirectory>
+        <plugins>
+            <plugin>
+                <groupId>io.gatling</groupId>
+                <artifactId>gatling-maven-plugin</artifactId>
+                <version>${gatling-maven-plugin.version}</version>
+                <configuration>
+                    <simulationClass>io.sequenceforge.gatling.SequenceGenerationSimulation</simulationClass>
+                    <jvmArgs>
+                        <jvmArg>-Dbase.url=${base.url}</jvmArg>
+                        <jvmArg>-Dapi.key=${api.key}</jvmArg>
+                        <jvmArg>-Dtemplate.id=${template.id}</jvmArg>
+                    </jvmArgs>
+                </configuration>
+            </plugin>
+        </plugins>
+    </build>
+</project>
