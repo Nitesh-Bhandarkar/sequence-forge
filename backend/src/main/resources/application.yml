@@ -61,7 +61,14 @@ spring:
 server:
   port: 8080
 
+anthropic:
+  # Set ANTHROPIC_API_KEY env var. Get a key at https://console.anthropic.com
+  api-key: "${ANTHROPIC_API_KEY:}"
+
 app:
+  ai:
+    enabled: "${AI_ENABLED:false}"   # Set AI_ENABLED=false or app.ai.enabled=false to disable AI endpoints
+
   dev-login:
     enabled: true   # Set to false in production
 

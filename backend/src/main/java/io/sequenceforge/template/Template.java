@@ -78,6 +78,7 @@ public class Template implements Serializable {
     public Boolean getIsActive() { return isActive; }
     public void setIsActive(Boolean isActive) { this.isActive = isActive; }
     public List<PlaceholderConfig> getPlaceholderConfigs() { return placeholderConfigs; }
+    public void setPlaceholderConfigs(List<PlaceholderConfig> placeholderConfigs) { this.placeholderConfigs = placeholderConfigs; }
     public LocalDateTime getCreatedAt() { return createdAt; }
     public LocalDateTime getUpdatedAt() { return updatedAt; }
 }

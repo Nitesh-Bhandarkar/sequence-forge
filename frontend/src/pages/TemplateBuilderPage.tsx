@@ -3,8 +3,10 @@ import { useNavigate } from 'react-router-dom';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import toast from 'react-hot-toast';
 import { createTemplate } from '../api/templates';
+import { classifyPlaceholder } from '../api/ai';
 import { extractError } from '../lib/api';
 import type { PlaceholderType, PlaceholderConfigRequest } from '../types';
+import AIChatPanel from '../components/AIChatPanel';
 
 const DATE_FORMATS = [
   'FINANCIAL_YEAR', 'FINANCIAL_YEAR_FULL', 'FINANCIAL_QUARTER',
@@ -65,6 +67,26 @@ export default function TemplateBuilderPage() {
   const counterCount = placeholders.filter((p) => p.placeholderType === 'COUNTER').length;
   const preview = buildPreview(formatString, placeholders, maxCounterValue);
 
+  const [classifying, setClassifying] = useState<string | null>(null);
+
+  const handleAiClassify = async (index: number) => {
+    const ph = placeholders[index];
+    setClassifying(ph.placeholderName);
+    try {
+      const result = await classifyPlaceholder(ph.placeholderName, name || formatString);
+      updatePlaceholder(index, {
+        placeholderType: result.placeholderType as PlaceholderType,
+        dateFormat: result.dateFormat ?? undefined,
+        description: result.description,
+      });
+      toast.success(`Classified {${ph.placeholderName}} as ${result.placeholderType}`);
+    } catch {
+      toast.error('AI classification failed');
+    } finally {
+      setClassifying(null);
+    }
+  };
+
   const mutation = useMutation({
     mutationFn: () =>
       createTemplate({ name, description, formatString, maxCounterValue, placeholders }),
@@ -86,7 +108,8 @@ export default function TemplateBuilderPage() {
   };
 
   return (
-    <div className="p-8 max-w-3xl">
+    <div className="p-8 flex gap-6 h-full min-h-0">
+    <div className="flex-1 max-w-2xl">
       <div className="mb-6">
         <h2 className="text-2xl font-bold text-gray-900">New Template</h2>
         <p className="text-sm text-gray-500 mt-1">
@@ -151,6 +174,8 @@ export default function TemplateBuilderPage() {
                 key={p.placeholderName}
                 row={p}
                 onChange={(patch) => updatePlaceholder(i, patch)}
+                onAiClassify={() => handleAiClassify(i)}
+                classifying={classifying === p.placeholderName}
               />
             ))}
           </div>
@@ -164,11 +189,6 @@ export default function TemplateBuilderPage() {
           </div>
         )}
 
-        {/* AI placeholder (Phase 6) */}
-        <div className="card p-4 border-dashed bg-gray-50 text-center">
-          <p className="text-xs text-gray-400">💡 AI-assisted template builder coming in Phase 6</p>
-        </div>
-
         <div className="flex gap-3">
           <button type="submit" className="btn-primary" disabled={mutation.isPending}>
             {mutation.isPending ? 'Creating…' : 'Create Template'}
@@ -179,12 +199,20 @@ export default function TemplateBuilderPage() {
         </div>
       </form>
     </div>
+
+    {/* AI Chat Panel */}
+    <div className="w-80 shrink-0" style={{ height: 'calc(100vh - 4rem)' }}>
+      <AIChatPanel templateContext={formatString ? `${name} — ${formatString}` : undefined} />
+    </div>
+    </div>
   );
 }
 
-function PlaceholderEditor({ row, onChange }: {
+function PlaceholderEditor({ row, onChange, onAiClassify, classifying }: {
   row: PlaceholderRow;
   onChange: (patch: Partial<PlaceholderRow>) => void;
+  onAiClassify: () => void;
+  classifying: boolean;
 }) {
   return (
     <div className="border border-gray-200 rounded-lg p-4 space-y-3">
@@ -192,6 +220,14 @@ function PlaceholderEditor({ row, onChange }: {
         <code className="text-sm font-semibold text-brand-600 bg-brand-50 px-2 py-0.5 rounded">
           {'{' + row.placeholderName + '}'}
         </code>
+        <button
+          type="button"
+          onClick={onAiClassify}
+          disabled={classifying}
+          className="text-xs bg-violet-50 text-violet-600 hover:bg-violet-100 px-2 py-0.5 rounded transition-colors disabled:opacity-50"
+        >
+          {classifying ? '⏳ Classifying…' : '✨ AI classify'}
+        </button>
       </div>
       <div className="grid grid-cols-2 gap-3">
         <div>

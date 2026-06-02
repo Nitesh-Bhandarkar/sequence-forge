@@ -95,10 +95,15 @@ public class TemplateService {
     }
 
     @Cacheable(value = "templates", key = "#templateId")
+    @Transactional(readOnly = true)
     public Template loadForGeneration(UUID templateId) {
-        return templateRepository.findById(templateId)
+        Template template = templateRepository.findById(templateId)
                 .filter(Template::getIsActive)
                 .orElseThrow(() -> new TemplateNotFoundException(templateId));
+        // Copy Hibernate PersistentBag → plain ArrayList so the cached entity
+        // can be deserialized from Redis without an active Hibernate session.
+        template.setPlaceholderConfigs(new ArrayList<>(template.getPlaceholderConfigs()));
+        return template;
     }
 
     private void validateTemplate(CreateTemplateRequest request) {
