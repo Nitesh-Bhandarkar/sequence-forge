@@ -39,6 +39,7 @@ spring:
             client-id: "${GOOGLE_CLIENT_ID:change-me}"
             client-secret: "${GOOGLE_CLIENT_SECRET:change-me}"
             scope: openid,email,profile
+            redirect-uri: "${OAUTH2_REDIRECT_BASE:http://localhost:5173}/login/oauth2/code/{registrationId}"
           github:
             client-id: "${GITHUB_CLIENT_ID:change-me}"
             client-secret: "${GITHUB_CLIENT_SECRET:change-me}"
@@ -61,13 +62,16 @@ server:
   port: 8080
 
 app:
+  dev-login:
+    enabled: true   # Set to false in production
+
   jwt:
     # WARNING: Override APP_JWT_SECRET in production. Generate with: openssl rand -base64 32
     secret: "${APP_JWT_SECRET:c2VxdWVuY2UtZm9yZ2UtZGV2LXNlY3JldC1rZXktbG9jYWwtb25seQ==}"
     expiration-ms: 86400000  # 24 hours
   auth:
-    # Set to your frontend URL in production (e.g. https://app.sequenceforge.io)
-    frontend-redirect-url: "${FRONTEND_URL:}"
+    # Defaults to Vite dev server login route for local development
+    frontend-redirect-url: "${FRONTEND_URL:http://localhost:5173/login}"
 
 resilience4j:
   circuitbreaker:

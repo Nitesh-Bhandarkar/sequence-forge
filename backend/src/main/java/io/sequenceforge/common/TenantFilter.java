@@ -21,7 +21,8 @@ public class TenantFilter extends OncePerRequestFilter {
     @Override
     protected boolean shouldNotFilter(HttpServletRequest request) {
         String path = request.getRequestURI();
-        return path.startsWith("/oauth2/") || path.startsWith("/login/") || path.equals("/error");
+        return path.startsWith("/oauth2/") || path.startsWith("/login/")
+                || path.startsWith("/actuator") || path.startsWith("/dev/") || path.equals("/error");
     }
 
     @Override

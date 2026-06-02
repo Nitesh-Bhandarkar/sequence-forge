@@ -43,7 +43,8 @@ public class OAuth2SuccessHandler extends SimpleUrlAuthenticationSuccessHandler 
         String token = jwtService.generateToken(user.getId(), user.getTenantId(), email);
 
         if (frontendRedirectUrl != null && !frontendRedirectUrl.isBlank()) {
-            getRedirectStrategy().sendRedirect(request, response, frontendRedirectUrl + "?token=" + token);
+            getRedirectStrategy().sendRedirect(request, response,
+                    frontendRedirectUrl + "?token=" + token + "&tenantId=" + user.getTenantId());
         } else {
             response.setContentType(MediaType.APPLICATION_JSON_VALUE);
             response.setStatus(HttpServletResponse.SC_OK);
